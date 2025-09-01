@@ -1,6 +1,7 @@
 # 🏗️ System Architecture: Submission API & KYC API
 
 This document explains how **submission-api** and **kyc-api** connect and interact.
+<img width="1101" height="792" alt="image" src="https://github.com/user-attachments/assets/60aa95fa-fbd9-4572-9766-80a1f49e5f71" />
 
 ---
 
