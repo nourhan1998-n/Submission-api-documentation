@@ -45,7 +45,7 @@ It is primarily used during the **amendment resolution process**, where a busine
 **PUT** `/requests/{reference}/amendments/resolve`
 <img width="1664" height="752" alt="image" src="https://github.com/user-attachments/assets/1b545685-f64d-4c8c-a7e8-4880084b4254" />
 
-#### validateAndResolveRemarks Flow
+#### Validate & resolve amend errors Flow
 This method validates and resolves amendment-related errors for a given request.  
 It works in the following steps:
 
