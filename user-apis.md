@@ -37,4 +37,13 @@ User → `submission-api` → Store Document → Link to Request
 **Flow:**  
 User → `submission-api` → `kyc-api` → Return Request Status  
 
-(diagram placeholder)
+### 4. Update Request Partially API
+
+The **Update Request Partially** API allows partial updates to a submitted KYB request.  
+It is primarily used during the **amendment resolution process**, where a business request may require changes based on back-office feedback, additional documents, or corrections from the customer.
+
+**PUT** `/requests/{reference}/amendments/resolve`
+
+---
+<img width="1681" height="741" alt="image" src="https://github.com/user-attachments/assets/d7088622-a74c-458c-889a-bd03ecccc48f" />
+
