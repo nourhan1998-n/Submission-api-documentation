@@ -9,8 +9,6 @@ This document explains the different **validation mechanisms** applied in the sy
 - Ensures correct **attribute names** and **data types** in KYB form.  
 - Validation performed **before request is persisted**.  
 
-(diagram placeholder)
-
 ---
 
 ## 2. Business Validation
@@ -18,12 +16,8 @@ This document explains the different **validation mechanisms** applied in the sy
 - Rules stored under resources in `kyc-api`.  
 - Ensures **business logic compliance** (ownership %, country restrictions, etc.).  
 
-(diagram placeholder)
-
 ---
 
 ## 3. Transformations with JOLT
 - **JOLT** used for JSON transformations.  
 - Applied **before and after validation** for request mapping.  
-
-(diagram placeholder)
