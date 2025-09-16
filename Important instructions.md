@@ -9,6 +9,16 @@
 ## 1 Adding Functionality to Existing Feature in Submission Engine
 
 When extending existing functionality (e.g., adding new validation, transformation, or request action), developers **must follow the wrapping flow**.
+<img width="674" height="112" alt="wrap" src="https://github.com/user-attachments/assets/bbde845a-218f-41f5-9b35-0483bcf9de6d" />
+
+---
+
+### Why This Flow Exists
+This design ensures that developers can easily **extend the amend process** by:  
+- Adding new logic in the **pre-execute** phase (before the original amend flow runs).  
+- Adding new logic in the **post-execute** phase (after the original amend flow finishes).  
+
+In short, the flow provides a **decorator + wrapper pattern** that lets you inject custom functionality around the existing amend process **without breaking the original core logic**. 
 
 ### Example in Adding Functionality to Amend Flow
 
