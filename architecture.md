@@ -1,8 +1,6 @@
 # 🏗️ System Architecture: Submission API & KYC API
 
 This document explains how **submission-api** and **kyc-api** connect and interact.
-<img width="1101" height="792" alt="image" src="https://github.com/user-attachments/assets/60aa95fa-fbd9-4572-9766-80a1f49e5f71" />
-
 ---
 
 ## 🔹 Overview
@@ -19,16 +17,16 @@ This document explains how **submission-api** and **kyc-api** connect and intera
 1. **Submission API Data Source**
    - Stores KYB requests only.  
 2. **KYC API Data Source**
-   - Stores all other operations (KYC, customers, accounts, rules).  
+   - Stores all other operations (customers, accounts, rules).  
 
 ---
 
 ## 🔹 Contract Layer
-- Integration via **CustomPersistence Interface**.  
+- Integration via **CustomPersistence Interface** & **CustomRequestDocument Interface**.  
 - Defines how `submission-api` interacts with `kyc-api`.  
 - Ensures **loose coupling** between modules.  
 
 ---
 
-## 🔹 Architecture Diagram (Placeholder)
-submission-api → (CustomPersistence) → kyc-api → Databases
+## 🔹 Architecture Diagram
+<img width="1413" height="720" alt="image" src="https://github.com/user-attachments/assets/8a1c769a-88c8-4179-9f51-e27b4bd92cef" />
