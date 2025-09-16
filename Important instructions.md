@@ -1,12 +1,12 @@
 # Important Instructions
 
 ## Table of Contents
-1. [Adding Functionality to Existing Feature in Submission Engine](#adding-functionality-to-existing-feature-in-submission-engine)  
-2. [Adding APIs in RequestController](#adding-apis-in-requestcontroller)  
+1. [Adding Functionality to Existing Feature in Submission Engine](#1-adding-functionality-to-existing-feature-in-submission-engine)  
+2. [Adding APIs in RequestController](#2-adding-apis-in-requestcontroller)  
 
 ---
 
-## Adding Functionality to Existing Feature in Submission Engine
+## 1 Adding Functionality to Existing Feature in Submission Engine
 
 When extending existing functionality (e.g., adding new validation, transformation, or request action), developers **must follow the wrapping flow**.
 
@@ -80,7 +80,7 @@ classDiagram
 
 ---
 
-## Adding APIs in RequestController
+## 2 Adding APIs in RequestController
 
 When creating new endpoints in the `RequestController`, you must follow strict conventions because of the request filter applied at the controller level.
 
