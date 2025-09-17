@@ -13,6 +13,7 @@ The **`kyc-api`** is the core service responsible for handling both **KYC (Know 
 This separation ensures that **KYB request processing** is isolated in the submission-api layer, while **account-related operations** remain centralized in the kyc-api database.  
 
 ---
+<img width="2095" height="2368" alt="KYC_RC_DEV2" src="https://github.com/user-attachments/assets/95797c5a-c1a9-4efb-810b-efc0e4433724" />
 
 ## 🔹 Core Reference Tables
 
