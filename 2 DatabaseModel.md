@@ -13,9 +13,12 @@ The **`kyc-api`** is the core service responsible for handling both **KYC (Know 
 This separation ensures that **KYB request processing** is isolated in the submission-api layer, while **account-related operations** remain centralized in the kyc-api database.  
 
 ---
+## Submission API Database Source
+
+### Data Source
 <img width="1048" height="1184" alt="KYC_RC_DEV2_EDITED" src="https://github.com/user-attachments/assets/f33dcc80-a4e6-4a85-82b4-6ebeb4911067" />
 
-## 🔹 Core Reference Tables
+### 🔹 Core Reference Tables
 
 - **SERVICE**
   - High-level service definition.
@@ -32,7 +35,7 @@ This separation ensures that **KYB request processing** is isolated in the submi
 
 ---
 
-## 🔹 Request & Processing
+### 🔹 Request & Processing
 
 - **REQUEST**
   - Represents a client’s application.
@@ -60,7 +63,7 @@ This separation ensures that **KYB request processing** is isolated in the submi
 
 ---
 
-## 🔹 KYC Entities
+### 🔹 KYC Entities
 
 - **CUSTOMER**
   - High-level entity (organization or individual).
@@ -100,7 +103,7 @@ This separation ensures that **KYB request processing** is isolated in the submi
 
 ---
 
-## 🔹 Documents & Identity
+### 🔹 Documents & Identity
 
 - **DOCUMENT_TYPE**
   - Defines available document types (e.g., Passport, Trade License).
@@ -123,7 +126,7 @@ This separation ensures that **KYB request processing** is isolated in the submi
 
 ---
 
-## 🔹 Workflow (State Machine)
+### 🔹 Workflow (State Machine)
 
 - **STATE, TRANSITION, ACTION, GUARD**
   - Define lifecycle of requests.
@@ -132,7 +135,7 @@ This separation ensures that **KYB request processing** is isolated in the submi
 
 ---
 
-## 🔹 IAM & Security
+### 🔹 IAM & Security
 
 - **IAM_ENTITY_TYPE / IAM_IDENTITY_TYPE**
   - Define entity and identity categories.
@@ -143,7 +146,7 @@ This separation ensures that **KYB request processing** is isolated in the submi
 
 ---
 
-## 🔹 Audit, Config, Logs
+### 🔹 Audit, Config, Logs
 
 - **DYNAMIC_CONFIGURATION**
   - Stores runtime configuration (`CONFIG_KEY`, `CONFIG_VALUE`).
