@@ -7,7 +7,26 @@ The **`kyc-api`** is the core service responsible for handling both **KYC (Know 
   1. **Submission API Data Source**
   2. **KYC API Data Source**
 ---
+### Entity Relationship Highlights
 
+- **CUSTOMER ↔ KYC ↔ REQUEST**: Core link between client, their verification, and the onboarding request.
+- **KYC ↔ INDIVIDUAL / BUSINESS**: KYC cases can involve both persons and organizations.
+- **REQUEST ↔ DOCUMENTS (through REQUEST_DOCUMENT)**: Each request may have multiple supporting documents.
+- **CATEGORY & SERVICE**: Define request scope and requirements.
+- **RULE_SET / RULE**: Encapsulate validation/business rules tied to categories/services.
+- **STATE MACHINE**: Drives the lifecycle of requests via states, actions, and transitions.
+
+### Entity Relationships (High-Level)
+
+- SERVICE → CATEGORY → REQUEST → KYC → BUSINESS / INDIVIDUAL → DOCUMENTS
+- CATEGORY → CATEGORY_DOCUMENT
+- BUSINESS → CONTACT / PARTNER / SHAREHOLDER / BUSINESS_DOCUMENT
+- INDIVIDUAL → IDENTITY_TYPE / INDIVIDUAL_DOCUMENT
+- DOCUMENT → linked across REQUEST, BUSINESS, INDIVIDUAL, SHAREHOLDER
+- IAM_BLOCK_LIST → IAM_ENTITY_TYPE & IAM_IDENTITY_TYPE
+- Workflow tables (STATE, TRANSITION, ACTION) power request lifecycles
+
+  
 ### Data Source
 <img width="1048" height="1184" alt="KYC_RC_DEV2_EDITED" src="https://github.com/user-attachments/assets/f33dcc80-a4e6-4a85-82b4-6ebeb4911067" />
 
