@@ -7,10 +7,11 @@ The **`kyc-api`** is the core service responsible for handling both **KYC (Know 
   1. **Submission API Data Source**
   2. **KYC API Data Source**
 ---
-## Submission API Database Source
 
 ### Data Source
 <img width="1048" height="1184" alt="KYC_RC_DEV2_EDITED" src="https://github.com/user-attachments/assets/f33dcc80-a4e6-4a85-82b4-6ebeb4911067" />
+
+**`Entities in red area are related to submission api datasource`**
 
 ### 🔹 Core Reference Tables
 
