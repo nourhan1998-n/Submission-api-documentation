@@ -19,12 +19,6 @@ The **`kyc-api`** is the core service responsible for handling both **KYC (Know 
 ### Entity Relationships (High-Level)
 
 - SERVICE → CATEGORY → REQUEST → KYC → BUSINESS / INDIVIDUAL → DOCUMENTS
-- CATEGORY → CATEGORY_DOCUMENT
-- BUSINESS → CONTACT / PARTNER / SHAREHOLDER / BUSINESS_DOCUMENT
-- INDIVIDUAL → IDENTITY_TYPE / INDIVIDUAL_DOCUMENT
-- DOCUMENT → linked across REQUEST, BUSINESS, INDIVIDUAL, SHAREHOLDER
-- IAM_BLOCK_LIST → IAM_ENTITY_TYPE & IAM_IDENTITY_TYPE
-- Workflow tables (STATE, TRANSITION, ACTION) power request lifecycles
 
   
 ### Data Source
