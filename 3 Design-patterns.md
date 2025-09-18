@@ -13,21 +13,12 @@ This document explains the **design patterns** applied inside the **submission-a
 
 ---
 
-## 🔹 Command Design Pattern
-- **Purpose**: Encapsulate a request (action) as an object.  
-- **Usage in submission-api**:  
-  - Each user action (submit request, upload document, rollback amendment) is a `Command`.  
-  - Executed by a `CommandHandler`.  
-- **Benefit**: Adds flexibility to queue, log, or rollback commands.  
-
----
-
 ## 🔹 Chain of Responsibility
 - **Purpose**: Pass a request through a chain of handlers where each one may process it or forward it.  
 - **Usage in submission-api**:  
   - Applied in **validation pipeline**.  
-  - Example: SchemaValidation → BusinessValidation → Transformation.  
-- **Benefit**: Decouples validation rules, allows adding new steps without changing the flow.  
+  - Example: 
+- **Benefit**: 
 
 ---
 
@@ -41,19 +32,3 @@ This document explains the **design patterns** applied inside the **submission-a
     4. Notify  
   - Subclasses override validation or persistence depending on request type.  
 - **Benefit**: Provides a standard flow while keeping extensibility.  
-
----
-
-## 🔹 Flow of a KYB Request
-1. **User submits request** → REST Controller.  
-2. **Command object** created and passed to **CommandHandler**.  
-3. **Chain of Responsibility** executes schema validation → business validation → JOLT transformations.  
-4. **Template method** defines persistence flow.  
-5. Request persisted via **CustomPersistence** → `kyc-api`.  
-6. **CQRS** ensures queries are separated from commands for efficient retrieval.  
-
----
-
-## 🔹 Diagrams (placeholders)
-- **Sequence diagram**: User → Submission API → Command → Validation Chain → Template Flow → KYC API → DB.  
-- **Class diagram**: Command + Handler, ValidationChain, Template base class.  
