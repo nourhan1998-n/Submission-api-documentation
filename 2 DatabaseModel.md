@@ -1,17 +1,11 @@
 # 📘 Database Model Documentation
 
-This document describes the **SUBMISSION-API database schema** used in the project.  
-
----
 The **`kyc-api`** is the core service responsible for handling both **KYC (Know Your Customer)** and **KYB (Know Your Business)** processes.  
 
 - The **`kyb` module** builds on top of the **submission-api**, which it uses as a library.  
 - As a result, the system operates with **two data sources**:
-  1. **Submission API Data Source** → Stores data related only to **KYB requests**.  
-  2. **KYC API Data Source** → Stores all other **account operations and KYC data**.  
-
-This separation ensures that **KYB request processing** is isolated in the submission-api layer, while **account-related operations** remain centralized in the kyc-api database.  
-
+  1. **Submission API Data Source**
+  2. **KYC API Data Source**
 ---
 ## Submission API Database Source
 
