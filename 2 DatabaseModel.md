@@ -13,20 +13,9 @@ The **`kyc-api`** is the core service responsible for handling both **KYC (Know 
 This separation ensures that **KYB request processing** is isolated in the submission-api layer, while **account-related operations** remain centralized in the kyc-api database.  
 
 ---
-<img width="2095" height="2368" alt="KYC_RC_DEV2" src="https://github.com/user-attachments/assets/95797c5a-c1a9-4efb-810b-efc0e4433724" />
+<img width="1048" height="1184" alt="KYC_RC_DEV2_EDITED" src="https://github.com/user-attachments/assets/a509a2e8-3872-4e38-b5d5-224bc76937d6" />
 
 ## 🔹 Core Reference Tables
-
-- **DOCUMENT_TYPE**
-  - Defines available document types (e.g., Passport, Trade License).
-  - Fields: `ID`, `CODE` (unique), `NAME_AR`, `NAME_EN`, `STATUS (EXIST/DELETED)`, `DOCUMENT_SCOPE`.
-  - Indexes: By `STATUS`, `DOCUMENT_SCOPE`.
-  - Used in: `CATEGORY_DOCUMENT`, `REQUEST_DOCUMENT`.
-
-- **FEE_TYPE**
-  - Defines types of fees.
-  - Fields: `ID`, `CODE` (unique), `NAME_AR`, `NAME_EN`, `STATUS (EXIST/DELETED)`.
-  - Used in: `CATEGORY_FEE`.
 
 - **SERVICE**
   - High-level service definition.
@@ -113,6 +102,12 @@ This separation ensures that **KYB request processing** is isolated in the submi
 
 ## 🔹 Documents & Identity
 
+- **DOCUMENT_TYPE**
+  - Defines available document types (e.g., Passport, Trade License).
+  - Fields: `ID`, `CODE` (unique), `NAME_AR`, `NAME_EN`, `STATUS (EXIST/DELETED)`, `DOCUMENT_SCOPE`.
+  - Indexes: By `STATUS`, `DOCUMENT_SCOPE`.
+  - Used in: `CATEGORY_DOCUMENT`, `REQUEST_DOCUMENT`.
+
 - **DOCUMENT**
   - General uploaded documents.
   - Fields: `NAME`, `DOCUMENT_SIZE`, `PATH`, `DOCUMENT_NUMBER`, `EXPIRY`, `CODE`.
@@ -150,14 +145,8 @@ This separation ensures that **KYB request processing** is isolated in the submi
 
 ## 🔹 Audit, Config, Logs
 
-- **REV_INFO / RULE_AUD / RULE_SET_AUD**
-  - Store historical changes for rules.
-
 - **DYNAMIC_CONFIGURATION**
   - Stores runtime configuration (`CONFIG_KEY`, `CONFIG_VALUE`).
 
-- **HTTP_REQUEST_LOG(_2, _3)**
-  - Request/response logging.
-
-- **DELAYED_TASK**
+- **SCHEDULED_TASK**
   - Retryable async task with attempt counts and failure reasons.
