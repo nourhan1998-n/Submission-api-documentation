@@ -5,8 +5,8 @@ This document explains how **submission-api** and **kyc-api** connect and intera
 
 ## 🔹 Overview
 - **submission-api**
-  - Acts as entry point for **KYB submission requests**.
-  - Stores only **KYB request data** in its own database.
+  - Acts as entry point for **submission requests**.
+  - Stores only **request data** in its own database.
 - **kyc-api**
   - Manages **all KYC operations** and account-related data.
   - Owns **business rules, validations, and workflows**.
