@@ -5,7 +5,7 @@ This document explains how **submission-api** and **kyc-api** connect and intera
 
 ## 🔹 Overview
 - **submission-api**
-  - Acts as entry point for **KYB requests**.
+  - Acts as entry point for **KYB submission requests**.
   - Stores only **KYB request data** in its own database.
 - **kyc-api**
   - Manages **all KYC operations** and account-related data.
@@ -15,9 +15,9 @@ This document explains how **submission-api** and **kyc-api** connect and intera
 
 ## 🔹 Two Data Sources
 1. **Submission API Data Source**
-   - Stores KYB requests only.  
+   - Stores KYB submission requests.  
 2. **KYC API Data Source**
-   - Stores all other operations (customers, accounts, rules).  
+   - Stores IAM_BlockList, Contact, Individual, Partner, Customer, Business and others related to settelment & payment.  
 
 ---
 
@@ -29,4 +29,4 @@ This document explains how **submission-api** and **kyc-api** connect and intera
 ---
 
 ## 🔹 Architecture Diagram
-<img width="1413" height="720" alt="image" src="https://github.com/user-attachments/assets/8a1c769a-88c8-4179-9f51-e27b4bd92cef" />
+<img width="1564" height="791" alt="image" src="https://github.com/user-attachments/assets/f55a40c3-fe24-4005-8e8c-7d344d15977f" />
