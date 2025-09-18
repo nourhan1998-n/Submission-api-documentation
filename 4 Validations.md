@@ -6,7 +6,8 @@ This document explains the different **validation mechanisms** applied in the sy
 
 ## 1. Schema Validation
 - Schema is passed from **kyc-api → submission-api**.  
-- Ensures correct **attribute names** and **data types** in KYB form.  
+- Ensures correct **attribute keys** and **data types** in KYB form.
+- Specify existence of **attribute key**, validate it. 
 - Validation performed **before request is persisted**.  
 
 ---
