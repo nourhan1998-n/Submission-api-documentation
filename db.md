@@ -1,160 +1,201 @@
-
 ## 1. Core Service and Categories
 
-- **SERVICE**  
-  Represents a business service. Includes code, name, status, and terms.  
-  **Relations:**
-  - One service → many categories (`CATEGORY.SERVICE_ID`).
+### SERVICE
+High-level service definition.  
+**Fields:** ID, CODE (unique), REF_PREFIX (unique), STATUS (EXIST/DELETED), TERMS_AND_CONDITIONS.  
+**Relations:** Related to CATEGORY and REQUEST.
 
-- **CATEGORY**  
-  Defines request categories within a service. Supports hierarchy (`PARENT_ID`).  
-  **Relations:**
-  - Linked to `SERVICE` and optionally to `SCHEMA_REGISTRY` for data validation.  
-  - One category → many documents (`CATEGORY_DOCUMENT`).  
-  - One category → many fees (`CATEGORY_FEE`).  
-  - One category → many requests (`REQUEST`).
-
----
-
-## 2. Request Lifecycle
-
-- **REQUEST**  
-  Represents a client submission or application. Has reference, type, status, comments.  
-  **Relations:**
-  - Belongs to a `CATEGORY` and a `SERVICE`.  
-  - Linked with documents (`REQUEST_DOCUMENT`), integrations (`REQUEST_INTEGRATION`), and errors (`ERROR`).  
-  - Can have allowed authors (`REQUEST_ALLOWED_AUTHORS`).  
-  - Extended with `REQUEST_DATA`.
-
-- **REQUEST_DOCUMENT**  
-  Links a request to uploaded documents with scope.  
-  **Relations:**  
-  - References `REQUEST`, `DOCUMENT`, and `DOCUMENT_TYPE`.
-
-- **REQUEST_INTEGRATION**  
-  Stores external system integration attempts for a request (payloads, responses).
-
-- **REQUEST_ALLOWED_AUTHORS**  
-  Defines which authors can modify a given request.
-
-- **ERROR**  
-  Stores errors linked to requests (validation, business, amendment).
-
-- **REQUEST_DATA**  
-  Holds additional request-related data in CLOB.
+### CATEGORY
+Service categories (hierarchical, via `PARENT_ID`).  
+**Fields:** ID, CODE, NAME_AR, NAME_EN, STATUS.  
+**Relations:**  
+- Belongs to SERVICE.  
+- Connected with SCHEMA_REGISTRY.  
+- Linked with CATEGORY_DOCUMENT & CATEGORY_FEE.  
+- Linked to REQUEST.
 
 ---
 
-## 3. Document Management
+## 2. Request & Processing
 
-- **DOCUMENT_TYPE**  
-  Defines types of documents (code, name, max uploads).  
-  **Relations:** Used by `CATEGORY_DOCUMENT` and `REQUEST_DOCUMENT`.
+### REQUEST
+Represents a client’s application.  
+**Fields:** ID, REFERENCE (unique), STATUS, TYPE, CATEGORY_ID, SERVICE_ID.  
+**Relations:**  
+- Linked to CATEGORY & SERVICE.  
+- Has many REQUEST_DOCUMENT, ERROR, REQUEST_ALLOWED_AUTHORS, REQUEST_INTEGRATION.  
+- Referenced by KYC.
 
-- **DOCUMENT**  
-  Represents uploaded files (path, type, size, code).  
-  **Relations:** Linked to requests (`REQUEST_DOCUMENT`), businesses (`BUSINESS_DOCUMENT`), shareholders (`SHAREHOLDER_DOCUMENT`), individuals (`INDIVIDUAL_DOCUMENT`), and identity documents (`IDENTITY_DOCUMENT`).
+### REQUEST_DOCUMENT
+Mapping between requests and uploaded documents.  
+**Relations:** Links REQUEST → DOCUMENT → DOCUMENT_TYPE.  
+Cascade deletes on DOCUMENT and DOCUMENT_TYPE.
 
-- **CATEGORY_DOCUMENT**  
-  Connects categories with required documents. Supports conditional requirements.
+### ERROR
+Stores validation/business rule errors.  
+**Fields:** ATTRIBUTE_PATH, MESSAGE, ERROR_TYPE (VALIDATION/BUSINESS/AMENDMENT), IS_RESOLVED.
 
-- **BUSINESS_DOCUMENT**, **SHAREHOLDER_DOCUMENT**, **INDIVIDUAL_DOCUMENT**, **IDENTITY_DOCUMENT**  
-  Linking tables connecting entities to their documents.
+### REQUEST_INTEGRATION
+Tracks request-related external integrations.  
+**Fields:** INTEGRATION_TYPE, PAYLOAD, TRANSFORMED_PAYLOAD, RESPONSE.
 
----
+### REQUEST_ALLOWED_AUTHORS
+Many-to-many mapping of who can author a request.
 
-## 4. Fees
-
-- **FEE_TYPE**  
-  Defines fee codes and names.
-
-- **CATEGORY_FEE**  
-  Links categories with applicable fees.
-
----
-
-## 5. Rules and Schema
-
-- **RULE_SET** and **RULE**  
-  Define business rules (code, status, file paths).  
-  - A rule belongs to a `RULE_SET`.
-
-- **RULE_AUD**, **RULE_SET_AUD**  
-  Auditing versions of rules and sets.
-
-- **SCHEMA_REGISTRY**  
-  Stores data schemas for validation.
-
-- **REV_INFO**  
-  Revision metadata for auditing.
+### REQUEST_DATA
+Stores request payload or additional CLOB data.
 
 ---
 
-## 6. Customer and KYC
+## 3. KYC Entities
 
-- **CUSTOMER**  
-  Basic customer entity (name, code, type, etc.).
+### CUSTOMER
+High-level entity (organization or individual).  
+**Fields:** ID, NAME, CODE, TRADE_LICENSE_NO, TYPE, CUSTOMER_ID.
 
-- **KYC**  
-  Know Your Customer records linked to a `CUSTOMER` and a `REQUEST`. Contains risk, status, review info.
+### KYC
+Central compliance record.  
+**Fields:** STATUS, RISK_LEVEL, RISK_SCORE, CUSTOMER_ID, REQUEST_ID, KYC_STATUS, REVIEW_STATUS.  
+**Relations:**  
+- One KYC per REQUEST.  
+- Linked to CUSTOMER.  
+- Has BUSINESS, INDIVIDUAL.
 
-- **INDIVIDUAL**  
-  Represents personal details linked to a `KYC`.
+### BUSINESS
+Company details.  
+**Fields:** COMPANY_NAME, TRADE_NAME, TRADE_LICENSE, COUNTRY_OF_INCORPORATION, ENTITY_STATUS, ENTITY_SUB_TYPE, BUSINESS_RELATION_TYPE.  
+**Relations:** Linked to KYC.  
+- Has many: BUSINESS_DOCUMENT, CONTACT, PARTNER, SHAREHOLDER, BUSINESS_INDIVIDUAL.
 
-- **BUSINESS**  
-  Company-level details linked to `KYC`.
+### INDIVIDUAL
+Person details.  
+**Fields:** NAME, NATIONALITY, IDENTIFICATION_NUMBER, EMAIL, POLITICALLY_EXPOSED, VIP, ID_VERIFICATION_STATUS.  
+**Relations:** Linked to KYC.  
+- Has many INDIVIDUAL_DOCUMENT, IDENTITY_TYPE.
 
-- **Relationships:**  
-  - Business ↔ Individuals: via `BUSINESS_INDIVIDUAL`.  
-  - Business ↔ Partners (`PARTNER`).  
-  - Business ↔ Contacts (`CONTACT`).  
-  - Business ↔ Shareholders (`SHAREHOLDER`).  
+### SHAREHOLDER
+Ownership details.  
+**Fields:** TYPE, IDENTIFIER, PERCENTAGE.  
+**Relations:** Linked to BUSINESS.  
+- Has many SHAREHOLDER_DOCUMENT.
 
-- **Shareholder** can have documents (`SHAREHOLDER_DOCUMENT`).
+### PARTNER
+Business partners.  
+**Relations:** Linked to BUSINESS.
 
-- **Identity**: `IDENTITY_TYPE` + `IDENTITY_DOCUMENT` for individuals.
-
-- **KYC_REQUEST_VIEW**  
-  A reporting view joining KYC, requests, businesses, individuals, and customers.
-
----
-
-## 7. State Machine (Workflow Engine)
-
-- **STATE**, **TRANSITION**, **ACTION**, **GUARD**  
-  Define workflow states, transitions, and actions.
-
-- **STATE_MACHINE**  
-  Holds current machine states.
-
-- **Supporting Tables:** `STATE_ENTRY_ACTIONS`, `STATE_EXIT_ACTIONS`, `STATE_STATE_ACTIONS`, `TRANSITION_ACTIONS`, `DEFERRED_EVENTS`.
-
----
-
-## 8. IAM / Access Control
-
-- **IAM_ENTITY_TYPE** and **IAM_IDENTITY_TYPE**  
-  Define identity classification.
-
-- **IAM_BLOCK_LIST**  
-  Stores blocked identities (entity type + identity type + value).
+### CONTACT
+Contact & address information for businesses.  
+**Relations:** Linked to BUSINESS.
 
 ---
 
-## 9. Logging & Config
+## 4. Documents & Identity
 
-- **DYNAMIC_CONFIGURATION**  
-  Stores dynamic key-value config.
+### DOCUMENT_TYPE
+Defines available document types (e.g., Passport, Trade License).  
+**Fields:** ID, CODE (unique), NAME_AR, NAME_EN, STATUS (EXIST/DELETED), DOCUMENT_SCOPE.  
+**Indexes:** By STATUS, DOCUMENT_SCOPE.  
+**Relations:** Used in CATEGORY_DOCUMENT, REQUEST_DOCUMENT.
 
-- **HTTP_REQUEST_LOG / 2 / 3**  
-  Stores HTTP requests and responses for auditing.
+### DOCUMENT
+General uploaded documents.  
+**Fields:** NAME, DOCUMENT_SIZE, PATH, DOCUMENT_NUMBER, EXPIRY, CODE.  
+**Relations:** Linked via REQUEST_DOCUMENT, BUSINESS_DOCUMENT, INDIVIDUAL_DOCUMENT, SHAREHOLDER_DOCUMENT.
 
-- **DATABASECHANGELOG / DATABASECHANGELOGLOCK**  
-  Liquibase metadata tables.
+### IDENTITY_TYPE
+Identity types for individuals.  
+**Fields:** ISSUING_DATE, EXPIRY_DATE.  
+**Relations:** Linked to INDIVIDUAL.
 
-- **DELAYED_TASK**  
-  Stores tasks with retry mechanisms (failure reason, retry times).
+### IDENTITY_DOCUMENT
+Links DOCUMENT to IDENTITY_TYPE.
 
-- **HTE_REV_INFO**  
-  Temporary revision info table.
-"""
+### BUSINESS_DOCUMENT / INDIVIDUAL_DOCUMENT / SHAREHOLDER_DOCUMENT
+Link entities to their uploaded DOCUMENTs.
+
+---
+
+## 5. Workflow (State Machine)
+
+### STATE, TRANSITION, ACTION, GUARD
+Define lifecycle of requests.  
+- **STATE**: supports entry/exit actions.  
+- **TRANSITION**: connects states with optional guards.  
+- **ACTION**: executable logic bound to states or transitions.  
+- **GUARD**: conditional checks.
+
+### STATE_MACHINE
+Holds current machine states.
+
+### Supporting Tables
+- STATE_ENTRY_ACTIONS  
+- STATE_EXIT_ACTIONS  
+- STATE_STATE_ACTIONS  
+- TRANSITION_ACTIONS  
+- DEFERRED_EVENTS
+
+---
+
+## 6. Fees
+
+### FEE_TYPE
+Defines fee codes and names.
+
+### CATEGORY_FEE
+Links categories with applicable fees.
+
+---
+
+## 7. Rules and Schema
+
+### RULE_SET and RULE
+Define business rules (code, status, file paths).  
+- A rule belongs to a RULE_SET.
+
+### RULE_AUD, RULE_SET_AUD
+Auditing versions of rules and sets.
+
+### SCHEMA_REGISTRY
+Stores data schemas for validation.
+
+### REV_INFO
+Revision metadata for auditing.
+
+---
+
+## 8. IAM & Security
+
+### IAM_ENTITY_TYPE / IAM_IDENTITY_TYPE
+Define entity and identity categories.
+
+### IAM_BLOCK_LIST
+Blacklist of identities.  
+**Fields:** ENTITY_TYPE_ID, IDENTITY_TYPE_ID, IDENTITY_VALUE, STATUS.
+
+---
+
+## 9. Audit, Config, Logs
+
+### DYNAMIC_CONFIGURATION
+Stores runtime configuration.  
+**Fields:** CONFIG_KEY, CONFIG_VALUE.
+
+### HTTP_REQUEST_LOG / HTTP_REQUEST_LOG_2 / HTTP_REQUEST_LOG_3
+Store HTTP requests and responses for auditing.
+
+### DATABASECHANGELOG / DATABASECHANGELOGLOCK
+Liquibase metadata tables.
+
+### DELAYED_TASK
+Retryable async task with attempt counts and failure reasons.
+
+### HTE_REV_INFO
+Temporary revision info table.
+
+---
+
+## 10. Views
+
+### KYC_REQUEST_VIEW
+Provides reporting join across KYC, REQUEST, BUSINESS, INDIVIDUAL, CUSTOMER.  
+Fields include JIRA_TICKET, ENTITY_SUB_TYPE, COMPANY_NAME, SUBMITTED_AT, KYC_STATUS, REVIEW_STATUS, REQUEST REFERENCE, SOURCE_CHANNEL.
