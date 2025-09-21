@@ -28,7 +28,10 @@ In short, the flow provides a **decorator + wrapper pattern** that lets you inje
 3. **AmendDecoratorService** (a service decorator) is injected into the wrapper to provide amend behaviors.  
 4. **AmendDecoratorService** extends `AbstractCommandServiceDecorator`, which requires a `KybCategoryBehavior`.  
 5. That **KybCategoryBehavior** is implemented by `KybAmendBehavior` (runtime logic).  
-6. **AmendDecoratorService** also uses `BehaviorConstants` to standardize logic.  
+6. **AmendDecoratorService** also uses `BehaviorConstants` to standardize logic.
+
+   <img width="1812" height="692" alt="image" src="https://github.com/user-attachments/assets/c7f5700d-43b1-4dfe-9780-8a3d1ec9f481" />
+
 
 ```mermaid
 classDiagram
