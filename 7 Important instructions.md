@@ -10,7 +10,7 @@
 
 When extending existing functionality (e.g., adding new validation, transformation, or request action), developers **must follow the wrapping flow**.
 
-<img width="674" height="112" alt="wrap" src="https://github.com/user-attachments/assets/bbde845a-218f-41f5-9b35-0483bcf9de6d" />
+<img width="1742" height="439" alt="image" src="https://github.com/user-attachments/assets/0a481c29-18eb-4d0a-825a-2a32ae07c354" />
 
 ### Why This Flow Exists
 This design ensures that developers can easily **extend the amend process** by:  
