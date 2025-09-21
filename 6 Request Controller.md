@@ -11,18 +11,24 @@ This document describes the **public APIs** exposed to end-users (e.g., customer
 ---
 
 ## 🔹 Endpoints (Examples)
+- `PUT /requests/{reference} ` → Update request.
 - `PUT /requests/{reference}/amendments/resolve ` → Resolve request and update it if amended.
 
 ---
 
 ## 🔹 Flows  
 
-### 1. Update Request Partially API
+### 1. Update Request
+
+**PUT** `/requests/{reference}` isPatch=**No**
+<img width="1664" height="752" alt="image" src="https://github.com/user-attachments/assets/1b545685-f64d-4c8c-a7e8-4880084b4254" />
+
+### 2. Update Request Partially API
 
 The **Update Request Partially** API allows partial updates to a submitted KYB request.  
 It is primarily used during the **amendment resolution process**, where a business request may require changes based on back-office feedback, additional documents, or corrections from the customer.
 
-**PUT** `/requests/{reference}/amendments/resolve`
+**PUT** `/requests/{reference}/amendments/resolve` isPatch=**Yes**
 <img width="1664" height="752" alt="image" src="https://github.com/user-attachments/assets/1b545685-f64d-4c8c-a7e8-4880084b4254" />
 
 #### Validate & resolve amend errors Flow
