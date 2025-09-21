@@ -31,48 +31,7 @@ In short, the flow provides a **decorator + wrapper pattern** that lets you inje
 6. **AmendDecoratorService** also uses `BehaviorConstants` to standardize logic.
 
    <img width="1812" height="692" alt="image" src="https://github.com/user-attachments/assets/c7f5700d-43b1-4dfe-9780-8a3d1ec9f481" />
-
-
-```mermaid
-classDiagram
-    %% Interfaces
-    class BehaviorConstants {
-        <<interface>>
-        +<<attributes>>
-    }
-
-    class KybCategoryBehavior {
-        <<interface>>
-    }
-
-    %% Implementations
-    class KybAmendBehavior {
-    }
-
-    %% Abstract and concrete classes
-    class AbstractCommandServiceDecorator {
-        <<abstract>>
-    }
-
-    class AmendDecoratorService {
-    }
-
-    class AmendCommandWrapper {
-    }
-
-    class AmendRequestCommand {
-    }
-
-    %% Relationships
-    BehaviorConstants <.. AmendDecoratorService : uses
-    KybCategoryBehavior <|.. KybAmendBehavior : implements
-    AbstractCommandServiceDecorator <|-- AmendDecoratorService : extends
-    KybCategoryBehavior <.. AbstractCommandServiceDecorator : injected
-    AmendDecoratorService --> AmendCommandWrapper : injected
-    AmendCommandWrapper <|-- AmendRequestCommand : extends
-```
-
-
+   
 #### The flow wires together commands and decorators so that request handling can be extended dynamically (via decorator) and configured by category-specific behaviors (via injected behavior implementations).
 
 
