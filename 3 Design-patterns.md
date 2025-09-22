@@ -1,11 +1,11 @@
 # 🧩 Design Patterns in Submission API
 
 This document explains the **design patterns** applied inside the **submission-api** and how they structure the flow of KYB request handling.  
-## 📑 Table of Contents
-- [🔹 Chain of Responsibility](#-chain-of-responsibility)  
-- [🔹 Strategy Pattern](#-strategy-pattern)  
-- [🔹 Template Method Pattern](#-template-method-pattern)  
-- [🔹 CQRS Pattern](#-cqrs-pattern)
+
+ [🔹 Chain of Responsibility](#-chain-of-responsibility)  
+ [🔹 Strategy Pattern](#-strategy-pattern)  
+ [🔹 Template Method Pattern](#-template-method-pattern)  
+ [🔹 CQRS Pattern](#-cqrs-pattern)
   
 ---
 
