@@ -1,6 +1,6 @@
 # 🛠️ Admin APIs Documentation
 
-This document describes the **internal APIs** used by the back-office/admin system.  
+This document describes the **internal APIs** used by the back-office system.  
 
 ---
 
