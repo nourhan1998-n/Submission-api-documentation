@@ -1,16 +1,12 @@
 # 🧩 Design Patterns in Submission API
 
 This document explains the **design patterns** applied inside the **submission-api** and how they structure the flow of KYB request handling.  
-
----
-
-## 🔹 CQRS (Command Query Responsibility Segregation)
-### **Purpose**: Separate read and write operations for clarity and scalability.  
-### **Usage in submission-api**:  
-  - **Commands** → Create, amend, approve KYB requests.  
-  - **Queries** → Fetch request status, list requests.  
-### **Benefit**: Clear separation makes it easier to optimize queries and handle complex write logic independently.  
-
+## 📑 Table of Contents
+- [🔹 Chain of Responsibility](#-chain-of-responsibility)  
+- [🔹 Strategy Pattern](#-strategy-pattern)  
+- [🔹 Template Method Pattern](#-template-method-pattern)  
+- [🔹 CQRS Pattern](#-cqrs-pattern)
+  
 ---
 
 ## 🔹 Chain of Responsibility
@@ -58,13 +54,69 @@ The application defines four handlers, each with a specific responsibility:
 
 ---
 
+## 🔹 Strategy Pattern
+
+### Context of Use
+In the **Submission Engine**, the **Strategy pattern** is applied within the `FlowStrategy` class.  
+The `FlowStrategy` decides how a request should be processed based on the **category** (e.g., KYC, KYB).  
+
+To achieve this, the class holds two maps:  
+- **customPersistenceServiceMap** → selects the persistence strategy.  
+- **customRequestDocumentServiceMap** → selects the document handling strategy.  
+
+When a request is processed, the appropriate strategy is chosen dynamically at runtime according to the category passed in.
+
+### Flow Strategy
+- Acts as the **context** for strategy execution.  
+- Relies on `customPersistenceServiceMap` and `customRequestDocumentServiceMap`.  
+- Based on the request’s **category**, it picks the appropriate strategy from the maps.  
+- Executes persistence and document-handling strategies in a consistent manner.  
+
+### Benefits in This Context
+- Centralizes flow handling in the `FlowStrategy` class while keeping actual logic separate.  
+- Supports **category-specific behavior** without cluttering the core submission engine.  
+- Easy to introduce new categories or services by simply adding new strategies.  
+- Encourages modular, testable, and loosely coupled design.  
+
+### Summary
+- The **Strategy pattern** is used in the `FlowStrategy` class.  
+- **Maps (customPersistenceServiceMap, customRequestDocumentServiceMap)** provide the correct strategy implementation based on category.  
+- **Each category** (KYC, KYB, GVPAY, etc.) has its own persistence and document-handling strategies.  
+- **Advantages**: separation of concerns, extensibility, flexibility, and maintainability.  
+
+---
+
 ## 🔹 Template Method Pattern
-- **Purpose**: Define the skeleton of an algorithm in a base class, but let subclasses override specific steps.  
-- **Usage in submission-api**:  
-  - Request processing templates (e.g., “ProcessRequestTemplate”) with steps like:  
-    1. Validate input  
-    2. Apply business rules  
-    3. Persist request  
-    4. Notify  
-  - Subclasses override validation or persistence depending on request type.  
-- **Benefit**: Provides a standard flow while keeping extensibility.  
+
+### Purpose
+The **Template Method pattern** is a behavioral design pattern that defines the **skeleton of an algorithm** in a base class, while allowing subclasses to override specific steps without changing the overall flow.  
+
+This ensures that all implementations follow a **standard sequence of operations**, but remain flexible where customization is required.
+
+### Usage in Submission API
+The Template Method pattern is applied in **multiple flows** within the submission-api.  
+
+Subclasses **override only the steps that differ** depending on the type of request or business rules involved, while the overall structure of the process remains consistent.
+
+### Benefits in This Context
+- Provides a **standardized flow** for processing requests across different categories.  
+- Reduces duplication by centralizing common process steps.  
+- Allows controlled **variation** where business logic differs.  
+- Makes request processing easier to understand, extend, and maintain.
+  
+### Summary
+The **Template Method pattern** is used in the submission-api to define standardized request-processing flows while allowing controlled variation in specific steps.  
+This ensures both **consistency** across all request types and **flexibility** to adapt to category-specific requirements.
+
+---
+
+## 🔹 CQRS Pattern
+### **Purpose**: Separate read and write operations for clarity and scalability.  
+### **Usage in submission-api**:  
+  - **Commands** → Create, amend, approve KYB requests.  
+  - **Queries** → Fetch request status, list requests.  
+### **Benefit**: Clear separation makes it easier to optimize queries and handle complex write logic independently.  
+
+
+
+  
