@@ -156,7 +156,7 @@ The **`kyc-api`** is the core service responsible for handling both **KYC (Know 
   - Stores runtime configuration (`CONFIG_KEY`, `CONFIG_VALUE`).
 
 - **SCHEDULED_TASK**
-  The `SCHEDULED_TASK` table is used to manage **delayed operations**, specifically **amendments**.  
+  - The `SCHEDULED_TASK` table is used to manage **delayed operations**, specifically **amendments**.  
   - When an amendment request is created, it is not applied immediately.  
   - Instead, a record is inserted into `SCHEDULED_TASK` with a **scheduled delay of 15 minutes**.  
   - This delay provides the **back-office team** a window to **review, intercept, or modify** the amendment before it is       processed automatically.  
