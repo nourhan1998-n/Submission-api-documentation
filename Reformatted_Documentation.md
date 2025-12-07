@@ -15,7 +15,7 @@
    - [Workflow](#workflow)
    - [IAM & Security](#iam--security)
    - [Audit & Scheduled Tasks](#audit--scheduled-tasks)
-3. [Design Patterns](#design-patterns)
+3. [Design Patterns Used](#design-patterns)
    - [Chain of Responsibility](#chain-of-responsibility)
    - [Strategy Pattern](#strategy-pattern)
    - [Template Method](#template-method-pattern)
@@ -24,8 +24,8 @@
    - [Schema Validation](#1-schema-validation)
    - [Business Validation](#2-business-validation)
    - [JOLT Transformations](#3-transformations-with-jolt)
-5. [Admin APIs](#admin-apis)
-6. [Public Request APIs](#public-request-api)
+5. [Internal APIs](#internal-apis)
+6. [Public APIs](#public-apis)
    - [Update Request](#update-request)
    - [Update Request Partially](#update-request-partially)
    - [Amendment Resolution Flow](#validate--resolve-amend-errors-flow)
@@ -178,17 +178,41 @@ Used pre- and post‑validation.
 
 ---
 
-# 🛠️ Admin APIs
+# 🛠️ Internal APIs
 
-Internal endpoints (kyc-api):
-- `GET /admin/requests/{id}`
-- `POST /admin/requests/{id}/amend`
-- `POST /admin/requests/{id}/approve`
-- `POST /admin/requests/{id}/reject`
+(`/internal/requests`)
+| HTTP Method | Endpoint | Description | Notes |
+| :--- | :--- | :--- | :--- |
+| **POST** | `/` | Initialize new request with category code and request info | |
+| **GET** | `/` | Get paginated list of requests with filtering | Supports query params: `queryString`, `category`, `pageSize`, `pageNumber`, `sortingField`, `isAsc` |
+| **GET** | `/` | Generate file export of requests | Requires `Accept: application/octet-stream` header |
+| **POST** | `/{reference}/amend` | Admin amendment of submitted requests | |
+| **POST** | `/clone` | Clone an existing request | |
+| **PATCH** | `/reset` | Reset a request to its initial state | |
+| **GET** | `/{reference}/documents` | Get all documents for a request | |
+| **GET** | `/{reference}/documents/{scope}` | Get documents by scope | |
+| **GET** | `/{reference}/allowed-authors` | Get list of allowed authors for a request | |
 
 ---
 
-# 🌐 Public Request API
+# 🌐 Public APIs
+
+(`/requests`)
+
+| HTTP Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| **GET** | `/my-requests` | Get current user's requests |
+| **GET** | `/owning-entity/{reference}` | Get requests by owning entity reference |
+| **GET** | `/{reference}` | Get request details by reference |
+| **GET** | `/{reference}/basic-info` | Get basic info of a request |
+| **PUT** | `/{reference}` | Update full request |
+| **PUT** | `/{reference}/amendments/resolve` | Partially update request to resolve amendments |
+| **POST** | `/{reference}/documents` | Upload documents for a request |
+| **PUT** | `/{reference}/submit` | Submit a request |
+| **GET** | `/{reference}/document-types/document-scope/{documentScope}` | Get required documents for a request with specific scope |
+| **GET** | `/{reference}/document-types` | Get all required documents for a request |
+| **GET** | `/{reference}/documents/{scope}` | Get uploaded documents for a request by scope |
+| **DELETE** | `/{reference}/documents/{code}` | Delete a specific document from a request |
 
 ## Update Request
 ```
