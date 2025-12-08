@@ -7,7 +7,8 @@
    - [Data Sources](#data-sources)
    - [Contract Layer](#contract-layer)
    - [Architecture Diagram](#architecture-diagram)
-2. [Database Model](#database-model)
+
+2. [Database Model](#📘-database-model)
    - [Entity Relationship Highlights](#entity-relationship-highlights)
    - [Request & Processing](#request--processing)
    - [KYC Entities](#kyc-entities)
@@ -15,35 +16,41 @@
    - [Workflow](#workflow)
    - [IAM & Security](#iam--security)
    - [Audit & Scheduled Tasks](#audit--scheduled-tasks)
-3. [Design Patterns Used](#design-patterns)
+
+3. [Design Patterns Used](#🧩-design-patterns)
    - [Chain of Responsibility](#chain-of-responsibility)
    - [Strategy Pattern](#strategy-pattern)
-   - [Template Method](#template-method-pattern)
+   - [Template Method Pattern](#template-method-pattern)
    - [CQRS Pattern](#cqrs-pattern)
-4. [Validations](#validations)
+
+4. [Validations](#✅-validations)
    - [Schema Validation](#1-schema-validation)
    - [Business Validation](#2-business-validation)
    - [JOLT Transformations](#3-transformations-with-jolt)
-5. [Internal APIs](#internal-apis)
-6. [Public APIs](#public-apis)
+
+5. [Internal APIs](#🛠️-internal-apis)
+
+6. [Public APIs](#🌐-public-apis)
    - [Update Request](#update-request)
    - [Update Request Partially](#update-request-partially)
    - [Amendment Resolution Flow](#validate--resolve-amend-errors-flow)
-7. [Important Instructions](#important-instructions)
-   - [Extending Submission Engine](#1-adding-functionality-to-existing-feature-in-submission-engine)
+
+7. [Important Instructions](#📌-important-instructions)
+   - [Extending Submission Engine](#1-adding-functionality-to-existing-submission-engine)
    - [Adding APIs to RequestController](#2-adding-apis-in-requestcontroller)
+
 
 ---
 
 # 🏗️ System Architecture
 
 ## Overview
-- **submission-api** handles submission requests.
-- **kyc-api** manages KYC/KYB business logic and workflows.
+- **submission-api** library handles submission requests.
+- **kyc-api** application manages KYC/KYB business logic, workflows and uses submission-api library.
 
 ## Data Sources
-1. **Submission Data Source** – stores submission requests.
-2. **KYC Data Source** – stores customer, KYC, business, documents, workflows.
+1. **Library Data Source** – stores submission requests (KYC).
+2. **Application Data Source** – stores customer, KYC, business, documents, workflows (OCID).
 
 ## Contract Layer
 Integration is via:
@@ -51,11 +58,15 @@ Integration is via:
 - **CustomRequestDocument Interface**
 
 ## Architecture Diagram
-*(Image placeholder)*
+<img width="1564" height="791" alt="arch" src="https://github.com/user-attachments/assets/83c77a59-8c21-407c-9a3a-49b9898cb9bf" />
+
 
 ---
 
 # 📘 Database Model
+
+<img width="1048" height="1184" alt="db" src="https://github.com/user-attachments/assets/3e2761d8-14ce-48dc-a197-092336b0e11e" />
+<p align="center"><i>Entities in red area are related to submission api datasource</i></p>
 
 ## Entity Relationship Highlights
 ```
@@ -219,7 +230,7 @@ Used pre- and post‑validation.
 PUT /requests/{reference}
 ```
 `isPatch = false`  
-*(Diagram placeholder)*
+<img width="1664" height="752" alt="update" src="https://github.com/user-attachments/assets/2a676289-1695-440e-9879-181b43011137" />
 
 ---
 
@@ -228,7 +239,7 @@ PUT /requests/{reference}
 PUT /requests/{reference}/amendments/resolve
 ```
 `isPatch = true`  
-*(Diagram placeholder)*
+<img width="1664" height="752" alt="partially" src="https://github.com/user-attachments/assets/fbdb70d8-ce61-4137-9bf9-6cd1f282a55c" />
 
 ---
 
@@ -246,21 +257,53 @@ Explains:
 # 📌 Important Instructions
 
 ## 1. Adding Functionality to Existing Submission Engine
-Follow:
-- pre‑execute  
-- main  
-- post‑execute  
-flow.  
-*(Diagram placeholder)*
+When extending existing functionality (e.g., adding new validation, transformation, or request action), developers **must follow the wrapping flow**.
+<img width="1742" height="439" alt="f1" src="https://github.com/user-attachments/assets/f662f5fc-ba89-4cb5-aaeb-22d166a07995" />
 
-Guidelines:
-- Never bypass engine flow  
-- Always use decorators  
-- Maintain auditability  
+
+### Why This Flow Exists
+This design ensures that developers can easily **extend the amend process** by:  
+- Adding new logic in the **pre-execute** phase (before the original amend flow runs).  
+- Adding new logic in the **post-execute** phase (after the original amend flow finishes).  
+
+In short, the flow provides a **decorator + wrapper pattern** that lets you inject custom functionality around the existing amend process **without breaking the original core logic**. 
+
+---
+
+### Example in Adding Functionality to Amend Flow
+
+1. **AmendRequestCommand** defines the base command.  
+2. **AmendCommandWrapper** extends it to add amend-specific logic.  
+3. **AmendDecoratorService** (a service decorator) is injected into the wrapper to provide amend behaviors.  
+4. **AmendDecoratorService** extends `AbstractCommandServiceDecorator`, which requires a `KybCategoryBehavior`.  
+5. That **KybCategoryBehavior** is implemented by `KybAmendBehavior` (runtime logic).  
+6. **AmendDecoratorService** also uses `BehaviorConstants` to standardize logic.
+
+<img width="1812" height="692" alt="f2" src="https://github.com/user-attachments/assets/ed7302d3-a5b7-4c6e-9b69-37530500b10b" />
+   
+#### The flow wires together commands and decorators so that request handling can be extended dynamically (via decorator) and configured by category-specific behaviors (via injected behavior implementations).
+
+
+### Key Guidelines
+- Always wrap new functionality in the existing flow rather than bypassing it.  
+- Use the engine-provided services (e.g., request creation, update, submission, amendment, retrieval).  
+- Plug into the validation, schema, and rule engine layers where necessary instead of duplicating logic.  
+- Maintain auditability by ensuring all new functionality produces logs/events.  
+- Ensure backward compatibility by not breaking existing flows.  
 
 ---
 
 ## 2. Adding APIs in RequestController
+
+When creating new endpoints in the `RequestController`, you must follow strict conventions because of the request filter applied at the controller level.
+
+### Path Structure Rule
+All endpoints under `/requests` must contain the request reference immediately after `/requests/`.
+
+### Why This Rule Exists
+- A request filter inspects the path of each API.  
+- The filter uses the request reference from the path to categorize and authorize requests.  
+- If the reference is not placed immediately after `/requests/`, the filter will fail, and the request will be rejected.  
 
 ### Path Rule (Critical)
 🟩 Correct  
@@ -272,8 +315,6 @@ Guidelines:
 ```
 /requests/amendments/{reference}/resolve
 ```
-
-Because controller filter extracts `{reference}` from path immediately after `/requests/`.
 
 ---
 
