@@ -4,224 +4,170 @@
 
 ## 1. Executive Summary
 
-This document proposes a unified **Dual-Flow Onboarding Architecture** that integrates a modern **eKYC (automated individual identity verification)** flow with our **Legacy KYB (Know Your Business)** flow.
+This document proposes a unified **Dual-Flow Onboarding Architecture** for business accounts (merchants and corporates) by integrating a modern **automated eKYC (individual representative verification)** flow with our **Legacy KYB (Know Your Business)** flow.
 
 Under this architecture:
-1. **eKYC** acts as the front-end automated gatekeeper to verify the identity of the corporate/merchant representative (individual). It utilizes automated OTP verification, dual-sided Emirates ID scanning with OCR, and FaceTec 3D Liveness and Facial Matching.
-2. **Success/Fallback Handling** splits verified users into an automated happy-path, while routing questionable/failed cases to manual compliance queues.
-3. **Transition to KYB**: Once individual identity (eKYC) is verified, the flow smoothly hands over to the **Legacy KYB Flow** to verify business credentials (Trade License, UBOs, Shareholders, Napier corporate screening, and operations/compliance approvals).
+1. **eKYC** acts as the front-end automated verification engine for the individual business representative. It uses UAE Pass document requests/approval, GDRFA residency checks, automated AML screening, and a manual eKYC compliance fallback loop.
+2. **Transition/Handover to Full KYB**: If the automated eKYC verification fails due to **GDRFA failure or data issues**, the flow immediately escalates and hands over to the **Legacy KYB Flow** starting at the `PENDING_ONBOARDING (basically full KYC)` state. This triggers the comprehensive, manual corporate onboarding pipeline (verifying business trade licenses, company structures, UBOs, and deep screening).
+3. **Successful eKYC**: If the automated eKYC succeeds, the user is transitioned to `APPROVED (KYC LIMITED)`.
 
 ---
 
-## 2. Integrated Onboarding Pipeline
+## 2. Onboarding State Machine & Pipeline
 
+The following diagram illustrates the exact eKYC state machine mapped directly from the system specification, showing all transition conditions and the handover point to the Legacy KYB flow:
+
+![Proposed Dual Flow Pipeline](https://mermaid.ink/img/pako:eNqNVVtv2jAQ_iuRT0MFtKNu26Q9BAkEEmXJS9nDhBwSi8SJ_EFTFf33XecCpHQTL7bPOffdc8b2Z6pIRgMiuNyIbEPKSEqVVlJ8XBgot5ylYnMRE--DkrNts-2ZbieKhoqfXvIdE9b0m9bbX-4fqP_eSnZJlIEKM6K6v_X_va5V_Ymqkbvvo7fPLa8X8-6idwqykS_FksuI9bW4oA0heobm4C_mfqz2Y_Izk72YGJhLH0Zp8YL5j7_D53_rvAnYskbMKPZPbaVrtN_Ff9In-9Y7S3b7YVpifvPeGNoX9YHEfuZQQdI_TPunGHe_bL_Z_m57TGvP29_YgfeIB_wdS06FlAc_9CUUR7G-HPL9Nvxm_S97G_vS_6T73u-K_N8qfGu8_m8Zrv8xbWUP7CyL347vshZ_2W82-UfBYQj8hfG1S_mvffrfYXPMSN7kv4p7HngK9j-b_S9b_9IE9mSAv_YRem_6sD-F0upsXFpEZayqn_WvFCv_en-Br9bH-L3Gcl4R9r2UvO_E_Z7yYfX_p_0PzNffmN4FfeL7_m_T87Ige8QHehG_7K-3Z09O3P_E7L9pux6_l5p7W9L7RP6l_1tWvIn0X-t6z9OtefTPrN1GzT6_7yV_mMaB3v_v-H3v_r_W39b9y2Y9_g?type=png)
+
+<details>
+<summary>View Mermaid Code</summary>
+
+```mermaid
+flowchart TD
+    subgraph eKYC_Phase["Automated eKYC Flow (Individual Representative)"]
+        Start(["Start Representative Registration"]) --> Req["PENDING_UAEPASS_DOCUMENTS_REQUEST"]
+        
+        Req -->|Requested| Apr["PENDING_UAEPASS_DOCUMENTS_APPROVAL"]
+        Apr -->|Rejected| Req
+        
+        Apr -->|failed| GDRFA["PENDING_GDRFA"]
+        Apr -->|"succeeded and not enough data"| GDRFA
+        Apr -->|"succeeded and enough data"| Screen["PENDING_SCREENING"]
+        Apr -->|"succeed and age is under 18"| Comp["PENDING_EKYC_COMPLIANCE"]
+        
+        GDRFA -->|"succeeded and enough data"| Screen
+        GDRFA -->|"succeeded and not enough data"| Comp
+        GDRFA -->|failed| Comp
+        
+        Screen -->|Succeeded| ApprovedE["APPROVED (KYC LIMITED)"]
+        Screen -->|Failed| Comp
+        
+        Comp -->|Approved| ApprovedE
+        Comp -->|Rejected| Rejected["COMPLIANCE_REJECTED"]
+        Comp -->|"In case of screening failure<br/>request additional documents"| Amend["AMENDED_EKYC_COMPLIANCE"]
+        
+        Amend -->|"User uploads additional documents"| Comp
+    end
+
+    subgraph Handover["Handover Point"]
+        Comp -->|"In case of GDRFA failure<br/>or data issues"| LegacyHandover["PENDING_ONBOARDING<br/>(basically full KYC)"]
+    end
+
+    subgraph Legacy_KYB_Phase["Legacy KYB Flow (Full Business Verification)"]
+        LegacyHandover --> InitiateKYB["Execute InitiateKybCommand<br/>for Corporate/Merchant Entity"]
+        InitiateKYB --> SubOps["Transition to SUBMITTED_OPERATION<br/>(Operations Team Manual Review of Trade License & Docs)"]
+        SubOps --> OpsApproved{"Operations Approved?"}
+        
+        OpsApproved -->|Yes| SubOpsApproved["Transition to SUBMITTED_OPERATIONS_APPROVED<br/>(Publish EntityKYBScreening to Kafka)"]
+        OpsApproved -->|Amend| AmendOps["Transition to AMENDED_OPERATION<br/>(Operations requests document amendments)"]
+        
+        SubOpsApproved --> ScreenPending["Transition to SUBMITTED_PENDING_SCREENING<br/>(Await Napier Corporate & UBO Screening Results)"]
+        
+        ScreenPending --> ScreeningDecision{"Napier Screening Result?"}
+        
+        ScreeningDecision -->|Passes Thresholds| CompKYB["Transition to COMPLETED ✓<br/>(Enable Merchant & Create Wallet)"]
+        ScreeningDecision -->|Fails Thresholds / Manual Check| SubCompliance["Transition to SUBMITTED_COMPLIANCE<br/>(Manual Compliance Review)"]
+        
+        SubCompliance --> ComplianceApproved{"Compliance Approved?"}
+        ComplianceApproved -->|Yes| CompKYB
+        ComplianceApproved -->|No| RejectKYB["Transition to COMPLIANCE_REJECTED<br/>(Disable merchant user)"]
+    end
+
+    ApprovedE -->|User can access KYC Limited portal| RegisterCompany["Register Business & Trade License"]
+    RegisterCompany --> LegacyHandover
+
+    style ApprovedE fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style LegacyHandover fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+    style CompKYB fill:#d4edda,stroke:#28a745,stroke-width:3px
+    style Rejected fill:#f8d7da,stroke:#dc3545,stroke-width:2px
+    style RejectKYB fill:#f8d7da,stroke:#dc3545,stroke-width:2px
 ```
-[ Individual eKYC Phase ] 
-      │ (OTP → Emirates ID OCR → FaceTec 3D Liveness Check)
-      ▼
-[ Automated Verification Decision ]
-      ├─── Pass ───► [ KYB Business Phase ] (Trade License, Shareholders, Napier Screen)
-      └─── Fail ───► [ Manual Review Phase ] (Compliance Queue/Portal Override)
-```
+</details>
 
 ---
 
 ## 3. Detailed Step-by-Step Flow
 
-### Phase 1: Individual eKYC Verification
-1. **Initial Registration**: The corporate/merchant representative signs up on the portal with an Email and Mobile number.
-2. **OTP Verification**: The system sends and verifies OTP on both channels (SMS and Email) to guarantee communication ownership.
-3. **Emirates ID (EID) Upload**:
-   - The user scans the front and back of their Emirates ID.
-   - The system performs **OCR extraction** to fetch demographic details (Name, EID Number, Date of Birth, Expiry, Nationality) and the embedded photo.
-   - External validation (ICA/ICP or UAE Pass) verifies card authenticity and validity.
-4. **FaceTec 3D Liveness Check & Matching**:
-   - The user performs a 3D selfie scan using the FaceTec SDK.
-   - The FaceTec server performs **3D Liveness Detection** to prevent spoofing (e.g., photos, video playbacks, masks).
-   - FaceTec performs **Facial Matching (1:1)** between the 3D selfie map and the photo extracted from the scanned Emirates ID.
+### 3.1 Step 1: UAE Pass & Document Request
+- **State**: `PENDING_UAEPASS_DOCUMENTS_REQUEST`
+- **Action**: The representative initiates registration. The system triggers a document request through **UAE Pass** to retrieve the individual's verified identity documents.
+- **Transition**:
+  - Once the document request is enqueued/issued (`Requested` condition), the flow transitions to `PENDING_UAEPASS_DOCUMENTS_APPROVAL`.
 
-### Phase 2: Automated Verification Guard
-The outcome of Phase 1 determines the next step:
-- **eKYC SUCCESS**: If Liveness is verified and Face Match score exceeds the configured threshold:
-  - Create the `IamUser` and `IamEntity` profiles.
-  - Set KYC status to `MEDIUM`.
-  - Automatically transition directly to the **KYB Business Details** collection.
-- **eKYC FAILURE**: If liveness fails, or face match is low:
-  - Route the signup request to the **Manual Compliance Queue**.
-  - Review Status is updated to `PENDING_FACETECH` or `PENDING_ADDITIONAL_INFO`.
-  - An operations or compliance officer can manually approve, reject, or request amendment via the portal.
+### 3.2 Step 2: UAE Pass Document Approval & Verification
+- **State**: `PENDING_UAEPASS_DOCUMENTS_APPROVAL`
+- **Action**: The system awaits the user's approval on UAE Pass to fetch documents. Once retrieved, the system performs validation checks on the document payload (OCR verification, date validation, and age checks).
+- **Transitions**:
+  - **Rejection**: If the user rejects the request (`Rejected`), the state returns to `PENDING_UAEPASS_DOCUMENTS_REQUEST`.
+  - **Happy Path**: If verification is successful and contains all necessary details (`succeeded and enough data`), the representative moves directly to **Automated Screening** in `PENDING_SCREENING`.
+  - **Incomplete / Missing Data**: If the documents succeed but lack critical verified attributes (`succeeded and not enough data`), the representative is routed to **GDRFA Residency Verification** in `PENDING_GDRFA`.
+  - **Verification Failure**: If the document validation fails (`failed`), the representative is routed to **GDRFA Verification** in `PENDING_GDRFA` for secondary automated validation.
+  - **Minor Protection**: If the documents are verified but the representative's age is under 18 (`succeed and age is under 18`), the system escalates the request directly to **eKYC Compliance** in `PENDING_EKYC_COMPLIANCE`.
 
-### Phase 3: Transition to Legacy KYB Flow (Business Phase)
-Upon successful eKYC verification, the representative registers the business:
-1. **Business Registration**: The representative inputs business details (Trade License number, Business Type, Corporate Name, and uploads company documents).
-2. **KYB Initiation**: The system executes `InitiateKybCommand` which:
-   - Links the verified representative to the business entity.
-   - Creates a `Customer` record in the database with `currentReviewState = PENDING_ONBOARDING`.
-   - Sends a request to the KYC Review service, receiving a `requestId`.
+### 3.3 Step 3: GDRFA Residency Verification
+- **State**: `PENDING_GDRFA`
+- **Action**: The system calls the external GDRFA (General Directorate of Residency and Foreigners Affairs) API synchronously to validate residency status, visa details, and card authenticity.
+- **Transitions**:
+  - **Pass**: If GDRFA confirms residency and returns all necessary data (`succeeded and enough data`), the flow transitions to **Automated Screening** in `PENDING_SCREENING`.
+  - **Partial Pass**: If GDRFA succeeds but fails to return enough structured fields for auto-approval (`succeeded and not enough data`), it escalates to **eKYC Compliance** in `PENDING_EKYC_COMPLIANCE`.
+  - **Failure**: If GDRFA validation fails (`failed`), the flow escalates to **eKYC Compliance** in `PENDING_EKYC_COMPLIANCE`.
+
+### 3.4 Step 4: Automated Representative Screening
+- **State**: `PENDING_SCREENING`
+- **Action**: The system submits the representative's verified details to the individual screening service (Napier individual check).
+- **Transitions**:
+  - **Screening Pass**: If screening succeeds (`Succeeded`), the representative is fully verified and reaches the terminal state **`APPROVED (KYC LIMITED)`**.
+  - **Screening Failure**: If screening fails or flags potential matches (`Failed`), the flow transitions to **eKYC Compliance** in `PENDING_EKYC_COMPLIANCE`.
+
+### 3.5 Step 5: eKYC Compliance (Manual Intervention Queue)
+- **State**: `PENDING_EKYC_COMPLIANCE`
+- **Action**: A manual review queue in the compliance portal where operations or compliance officers review the representative's flagged documents, age limits, or failed screening matches.
+- **Transitions**:
+  - **Manual Approve**: If the officer overrides and approves (`Approved`), the representative transitions to **`APPROVED (KYC LIMITED)`**.
+  - **Manual Reject**: If the officer rejects (`Rejected`), the flow lands in the terminal failure state **`COMPLIANCE_REJECTED`**.
+  - **Request Information**: If screening failed and the officer needs additional proof (`In case of screening failure request additional documents`), the flow transitions to `AMENDED_EKYC_COMPLIANCE`.
+  - **Legacy Escalation (GDRFA/Data issues)**: If the automated verification fails due to unresolvable GDRFA failures or major data consistency issues (`In case of GDRFA failure or data issues`), the automated eKYC flow **aborts and escalates** to **`PENDING_ONBOARDING (basically full KYC)`**, handing over directly to the **Legacy KYB Flow**.
+
+### 3.6 Step 6: Amended eKYC Compliance
+- **State**: `AMENDED_EKYC_COMPLIANCE`
+- **Action**: The portal notifies the user to upload specific supplemental documents.
+- **Transition**:
+  - Once the user uploads the requested documents (`User uploads additional documents`), the flow returns to `PENDING_EKYC_COMPLIANCE` for officer review.
+
+---
+
+## 4. Handover to Legacy KYB Flow
+
+When the eKYC flow falls back to **`PENDING_ONBOARDING (basically full KYC)`** due to GDRFA or data issue escalations, or when an `APPROVED (KYC LIMITED)` representative initiates business onboarding:
+
+1. **KYB Initial Record**: A merchant/corporate customer record is initialized on the `CUSTOMER` table. `currentReviewState` is set to `PENDING_ONBOARDING`.
+2. **KYB Initiation**: The representative provides company Trade License, Registration certificates, and list of Beneficial Owners (UBOs) and Shareholders.
 3. **Operations Review (`SUBMITTED_OPERATION`)**:
-   - The workflow triggers `OperationSubmittedWorkflow`.
-   - An incident and Jira ticket are created, and a notification is sent.
-   - Operations reviewers examine the trade license and business documents in the compliance portal.
-4. **Operations Approved (`SUBMITTED_OPERATIONS_APPROVED`)**:
-   - Once operations approves, the `OperationsApprovedWorkflow` triggers.
-   - The system sends the company and shareholder details to **Napier** for AML/Screening.
-   - State updates to `SUBMITTED_PENDING_SCREENING`.
-5. **Napier Screening Response**:
-   - **Pass**: If screening passes, state moves to `COMPLETED`. The user is enabled in UMS, wallet is created, and success notifications are sent.
-   - **Fail/Compliance**: If screening fails or requires manual compliance review, the state transitions to `SUBMITTED_COMPLIANCE`. Compliance officers must manually approve or reject, which subsequently leads to `COMPLETED` or `COMPLIANCE_REJECTED` states.
+   - Executes `OperationSubmittedWorkflow` to create a compliance incident and Jira ticket.
+   - Operations team manually reviews company documents in the compliance portal.
+4. **Corporate Screening (`SUBMITTED_PENDING_SCREENING`)**:
+   - Once approved by operations, the `OperationsApprovedWorkflow` triggers.
+   - Company entity and all listed shareholders are submitted to **Napier** for corporate screening via the `EntityKYBScreening` Kafka event on the `napier.create.entity.kyc` topic.
+5. **Final Status**:
+   - If corporate screening passes, the saga transitions to `COMPLETED` (enabling the merchant on the payments side and creating business wallets).
+   - If corporate screening fails, the compliance officer reviews the case under `SUBMITTED_COMPLIANCE` before moving to `COMPLETED` or `COMPLIANCE_REJECTED`.
 
 ---
 
-## 4. Visual Diagrams
+## 5. Architectural Recommendations for customer-api
 
-### Diagram A: End-to-End Proposed Dual Flow (eKYC to Legacy KYB)
+### 5.1 Use State Mappings in `kyc-review-state`
+The shared `kyc-review-state` library should be extended to support these new eKYC states in its canonical `ReviewStateEnum`:
+- `PENDING_UAEPASS_DOCUMENTS_REQUEST`
+- `PENDING_UAEPASS_DOCUMENTS_APPROVAL`
+- `PENDING_GDRFA`
+- `PENDING_SCREENING`
+- `PENDING_EKYC_COMPLIANCE`
+- `AMENDED_EKYC_COMPLIANCE`
+- `APPROVED_KYC_LIMITED`
 
-![End-to-End Proposed Dual Flow](https://mermaid.ink/img/pako:eNqVVdtu4jAQ_RXLK7VVkS7S3R6kh-WCEpYsKCyLSTePFXLAKVaxDf77OAnNshS6uY_JnDnzmLF5xlS6BDuYUrXh6ZqkURSDVJvky0pBeSIsFds_OfW-MKFSJKmokmBJlUR3pvz1Z0pC_DpsXG8_vT9R_70W7RIsA-FmRFVv7f17bWvXF6pG7r6N3r-0vF3MepreKshqL2XlyrB9Yy0OaEOInqE7-Iu5H-l9bH5gsh_TAnPpxWAsXjD_8X_4_D867wK2rOAhF_uHttA12-v4b-FpM_AbeLof-Aae7PuhgSe-b70hOQbyC_tAbL90qKDoF6H9Q7S_W49p42j7u-bAn_GAt-OIs5DqIDr6EorD2F7O-X6P_C17X_tXf2Dsc73r8X8r8J3x-L8XwZ0f7SbywE6y-Gv7PjOxlvW6iR8FhT7yF8bXGep-9f6_U3PMyL_wX8Y9D3wE_Z_0_q_Wv5oDPh_w9T5C724X-EaorM7asogqk9U_K18plv7u_gNf3R71_uF5YFf_TIDmveXAnPebp-3v2s-Z7tFhZzTqPveqLInxMyL_G3-G0fXUuXm69h_rZg_GofZpW8D7R_i7Bsc0IuPTeK79nOlPveS4x1Y7mZ7m9N89fndXF6T_iL_U9f-5f_TAt8f70N0m0nscS3T_HPhSg0M-mX4_N6G9T827m-bC8p89_rDndH_43V3O-yM-mX6_uPscf7qg26_jP8R_R_Q_8df_D?type=png)
+### 5.2 Flow Transition Rules
+The `SagaManager` inside `customer-api` can reuse the same workflow-action pattern:
+- Register `eKYC` state workflows under `SagaDefinition` (e.g., `GdrfaVerificationWorkflow`, `UaePassApprovalWorkflow`).
+- When a transition resolves to `PENDING_ONBOARDING`, the engine triggers a context switch from the Individual eKYC context to the Full Corporate/Merchant KYB context.
 
-<details>
-<summary>View Mermaid Code</summary>
-
-```mermaid
-flowchart TD
-    subgraph eKYC_Phase["Phase 1: Individual eKYC"]
-        Start(["User Registration"]) --> EmailMobile["Enter Email & Mobile"]
-        EmailMobile --> VerifyOTP["Verify Dual OTP (SMS & Email)"]
-        VerifyOTP --> ScanEID["Scan Emirates ID (Front & Back)"]
-        ScanEID --> ExtractOCR["Extract OCR Details & Photo"]
-        ExtractOCR --> FaceTecSDK["FaceTec 3D Liveness Selfie Scan"]
-        FaceTecSDK --> FaceTecMatch{"FaceTec Match Score<br/>& Liveness Success?"}
-    end
-
-    subgraph Fallback_Phase["Manual Fallback Phase"]
-        FaceTecMatch -->|No / Failed| ReviewManual["Update reviewStatus to<br/>'PENDING_FACETECH'"]
-        ReviewManual --> ManualDocs["Upload Documents Manually"]
-        ManualDocs --> ComplianceReview["Compliance Manual Queue"]
-        ComplianceReview --> ManualApprove{"Compliance Manual<br/>Approved?"}
-    end
-
-    subgraph KYB_Phase["Phase 2: Legacy KYB Flow"]
-        FaceTecMatch -->|Yes / Passed| RegisterBiz["Register Business Details<br/>(Trade License & Docs)"]
-        ManualApprove -->|Yes| RegisterBiz
-        RegisterBiz --> InitiateKYB["Execute InitiateKybCommand<br/>DB: Customer(PENDING_ONBOARDING)"]
-        InitiateKYB --> SubmittedOps["Saga: OperationSubmittedWorkflow<br/>DB: Customer(SUBMITTED_OPERATION)"]
-        SubmittedOps --> OpsReview{"Operations Team Approved<br/>Trade License & Docs?"}
-        
-        OpsReview -->|Yes| ApprovedOps["Saga: OperationsApprovedWorkflow<br/>DB: Customer(SUBMITTED_OPS_APPROVED)"]
-        OpsReview -->|Amend| AmendOps["Saga: AmendTransitionWorkflow<br/>DB: Customer(AMENDED_OPERATION)"]
-        
-        ApprovedOps --> SendScreening["Publish EntityKYBScreening to Kafka<br/>DB: Customer(SUBMITTED_PENDING_SCREENING)"]
-        SendScreening --> NapierScreen["Napier Corp & UBO Screening"]
-        
-        NapierScreen --> NapierResult{"Screening Result?"}
-        
-        NapierResult -->|Pass| OnboardingSuccess["Saga: ScreeningResponseWorkflow<br/>DB: Customer(COMPLETED)"]
-        NapierResult -->|Fail / Compliance| SubmittedCompliance["Saga: ScreeningResponseWorkflow<br/>DB: Customer(SUBMITTED_COMPLIANCE)"]
-        
-        SubmittedCompliance --> ComplianceDecision{"Compliance Officer Approved?"}
-        ComplianceDecision -->|Yes| OnboardingSuccess
-        ComplianceDecision -->|No| RejectKYB["Saga: ComplianceRejectedWorkflow<br/>DB: Customer(COMPLIANCE_REJECTED)"]
-    end
-
-    OnboardingSuccess --> EnableUMS["Enable User in UMS & Create Wallet"]
-    EnableUMS --> EndOnboarding(["Onboarding Completed Successfully ✓"])
-    RejectKYB --> EndOnboarding
-    ManualApprove -->|No| RejectIndividual["Reject Representative Signup"]
-    RejectIndividual --> EndOnboarding
-```
-</details>
-
----
-
-### Diagram B: Automated Screening Decision Flow Chart
-
-This tree details the automated screening evaluation block from the end of the eKYC phase through the Napier corporate lookup.
-
-![Screening Decision](https://mermaid.ink/img/pako:eNqVk91ugzAMhV8l8m6pkEDpY4sCCQQIdBBS6mRCDpYmGbFlrCIp0qdX_pYmYVvXTe7N-dk-OnPAtM4IdpEkbF-WW-IQRRDUO9c8H7DYcJrz-3LAnyFDYiryFc9Skyv7m_uru62Nms6NFlzEcUQLiSmRwfKeMinp_ZIFCjKX6DOH_m-R8gT6I55GXMg_DAnY_Y02pDoREfXQvKMs6vFqCO-mbygT9ZAL9M1EAt-rV0wJxSp-v_068Qomf8Yv78Zqg8sM6t-rVkID9epA_Lskbndf0D1_3LvlPQ95g9Yxv2UthZp6ViAncNMfSAzW9ED9e6_WQCXN64D_vFsDLTInUBZk_SX8Z6nju8w8S-BE4hmg7NJkM8-FBi1tXp_8TKL6_f_K97zR68btoR6G8f1A9gZ9p_L-?type=png)
-
-<details>
-<summary>View Mermaid Code</summary>
-
-```mermaid
-flowchart TD
-    A["Receive Napier Screening Response"] --> B{"Response Status?"}
-
-    B -->|SCORE_CARD_ALREADY_EXISTS_FAILURE| C["Transition to SUBMITTED_COMPLIANCE"]
-    B -->|FAILURE / Missing Data| D["Transition to SUBMITTED_SCREENING_FAILURE"]
-    B -->|SUCCESS| E{"Entity passes Risk &<br/>Screening Thresholds?"}
-
-    E -->|Yes| F["Transition to COMPLETED<br/><br/>Automated Actions:<br/>1. Update KYC status to MEDIUM<br/>2. Enable User in UMS<br/>3. Execute Create Wallet Command<br/>4. Publish Successful Onboarding Notification<br/>5. Send update confirmation to Napier"]
-
-    E -->|No| G["Transition to SUBMITTED_COMPLIANCE<br/><br/>Manual Actions:<br/>1. Update Risk Details on KYC Service<br/>2. Present to Compliance Queue for Override"]
-
-    C --> G
-    D --> H["Manual Operations Review required"]
-
-    style F fill:#d4edda,stroke:#28a745
-    style G fill:#fff3cd,stroke:#ffc107
-    style D fill:#f8d7da,stroke:#dc3545
-```
-</details>
-
----
-
-### Diagram C: Interaction Sequence Diagram (eKYC to Legacy KYB transition)
-
-This sequence diagrams the transition where the successful automated eKYC flow resolves into the legacy KYB command setup.
-
-![Transition Sequence](https://mermaid.ink/img/pako:eNqdVV1v2jAU_SuWn0AFtFu3adIeQgKBhPKxJOxhQg6JReJE_qCpiv77rnMBUmZra_HxeZ1777XjZyIxLwgOCediy5INGRKnIDTKnxcK8ANnnS-fV8b7vDCSZ1X8LAmXpUonNnt7_5gI0eU1v6Y8p33WeWssj1hRe8XvL0F6v07e5y6ZisG_C1r_9N_bV9tb3nU69EfeL68H6B7x96r677Vov6P3r22vD8shKzmWp_a8_e9qO7A80C9oWv7FPK70PhZfMdkL-v6G2VfW_b_06D8at_ZshfFIsG_b9O6m0u7A8UAvUHH5L_O48vdYfMNkz-v7S9byYfX_p8_R_iN6t3N-r7Fp5z8f_1ndP9M9O_6z_He0v_vYp_8D69t-gA?type=png)
-
-<details>
-<summary>View Mermaid Code</summary>
-
-```mermaid
-sequenceDiagram
-    actor User as Corporate Representative
-    participant UI as Portal / Web App
-    participant CAPI as customer-api<br/>(SignUpCommand)
-    participant FT as FaceTec SDK & Server
-    participant DB as Oracle DB
-    participant KYBS as Saga Manager<br/>(InitiateKybCommand)
-
-    rect rgb(230, 245, 255)
-        Note over User, FT: Phase 1: eKYC Verification
-        User->>UI: Enter Email, Mobile & Verify OTP
-        User->>UI: Scan front/back of Emirates ID
-        UI->>CAPI: Upload scanned images & OCR data
-        User->>UI: Take 3D Liveness Selfie
-        UI->>FT: Send Liveness Selfie & EID Photo for Matching
-        FT-->>UI: Liveness: Success, Match Score: 98%
-    end
-
-    rect rgb(255, 245, 230)
-        Note over UI, DB: Phase 2: User Account Creation (eKYC Success)
-        UI->>CAPI: Trigger Individual Signup
-        CAPI->>DB: Insert IamUser, IamEntity (kycStatus=MEDIUM)
-        CAPI-->>UI: 200 OK (User Profiles Created)
-    end
-
-    rect rgb(230, 255, 230)
-        Note over User, KYBS: Phase 3: Transition to Legacy KYB
-        User->>UI: Enter Company Name, Trade License & Upload Docs
-        UI->>CAPI: POST /business/kyb/initiate
-        CAPI->>KYBS: Execute InitiateKybCommand
-        KYBS->>DB: Insert CUSTOMER (ReviewState=PENDING_ONBOARDING)
-        KYBS-->>UI: 200 OK (KYB Process Initialized)
-        Note over KYBS: Handover to Legacy KYB Saga engine...
-    end
-```
-</details>
-
----
-
-## 5. Architectural Alignment & Recommendations
-
-### 5.1 Clear Separation of Context
-The `customer-api` currently suffers from conflating **User Registration** and **KYB Customer Registration**. Integrating the eKYC dual flow allows a clean separation of roles:
-- **`IamUser`/`IamEntity`**: Store the individual representative's identity details and their automated eKYC liveness verification status (`IamFaceTecEnrollment` / `IamFaceTecIdScan` entities).
-- **`Customer`**: Stores the merchant or corporate business entity details, mapped to `currentReviewState` of type `ReviewStateEnum`.
-
-### 5.2 Clean Handover Mechanism
-1. **eKYC Stage**: Complete representative's registration using the existing `IndividualEntitySignupCommand`. Perform Emirates ID extraction and FaceTec verification synchronously.
-2. **Representative Status**: If eKYC passes, save `IamUser.reviewStatus = CUSTOMER` and `kycStatus = MEDIUM`.
-3. **Business Registration Trigger**: Once representative is verified (`CUSTOMER` status), enable the trade license collection UI.
-4. **KYB Stage**: On submission, execute `InitiateKybCommand`. This writes to the `CUSTOMER` table with `PENDING_ONBOARDING` and registers a request on the KYC Review Service. The background state transitions (`kyc.request.flow` Kafka topic events) now manage operations reviews and corporate Napier screenings.
